@@ -1,3 +1,4 @@
+import os
 import re
 import struct
 import io
@@ -81,6 +82,7 @@ def _convertToPx(value):
 def _getNetpbm(fhandle, is_binary):
     fhandle.seek(2)
     sizes = []
+    ftype = "Netpbm binary" if is_binary else "Netpbm ASCII"
 
     while True:
         next_chr = fhandle.read(1)
@@ -92,20 +94,25 @@ def _getNetpbm(fhandle, is_binary):
             fhandle.readline()
             continue
 
-        if not next_chr.isdigit():
-            return None
+        if next_chr == b"":
+            raise ValueError("Invalid {} file.".format(ftype))
 
-        size = b""
+        if not next_chr.isdigit():
+            raise ValueError("Invalid character found on {} file.".format(ftype))
+
+        size = next_chr
+        next_chr = fhandle.read(1)
 
         while next_chr.isdigit():
             size += next_chr
             next_chr = fhandle.read(1)
 
-        if size != "":
-            sizes.append(int(size))
+        sizes.append(int(size))
 
-            if len(sizes) == 2:
-                break
+        if len(sizes) == 2:
+            break
+
+        fhandle.seek(-1, os.SEEK_CUR)
 
     return sizes
 
@@ -248,12 +255,18 @@ def get(filepath):
             try:
                 width, height = _getNetpbm(fhandle, False)
 
+            except ValueError:
+                raise
+
             except Exception:
                 raise ValueError("Invalid ASCII Netpbm file")
 
         elif head[:2] in (b"P4", b"P5", b"P6"):
             try:
                 width, height = _getNetpbm(fhandle, True)
+
+            except ValueError:
+                raise
 
             except Exception:
                 raise ValueError("Invalid binary Netpbm file")
