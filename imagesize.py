@@ -213,6 +213,7 @@ def get(filepath):
             width = _convertToPx(width)
             height = _convertToPx(height)
 
+        # handle Netpbm
         elif head[:1] == b"P" and head[1:2] in b"123456":
             fhandle.seek(2)
             sizes = []
